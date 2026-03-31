@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 import useSWR from "swr";
 import {
@@ -165,6 +166,15 @@ export function ZerotouchDashboard() {
                   <p className="max-w-2xl text-pretty text-sm leading-6 text-[var(--zt-muted)] sm:text-[15px]">
                     Android で収集されたトピックとカードを、閲覧専用でほぼリアルタイム表示します。
                   </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href="/stateful"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-4 py-2 text-sm font-medium text-[var(--zt-foreground)] hover:bg-[var(--zt-surface-strong)]"
+                  >
+                    Stateful Viewer
+                    <Sparkles className="size-4 text-[var(--zt-primary)]" />
+                  </Link>
                 </div>
               </div>
 
