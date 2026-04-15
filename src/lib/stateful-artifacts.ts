@@ -26,6 +26,14 @@ export type DailyThread = {
   source_spot_ids?: string[];
 };
 
+export type DailySourceSpot = {
+  spot_id: string;
+  dataset_id?: string;
+  start_at?: string;
+  end_at?: string;
+  headline?: string;
+};
+
 export type DailyDecision = {
   summary: string;
   source_refs?: string[];
@@ -95,16 +103,24 @@ export type ActiveStateSnapshot = {
 
 export type StateDelta = {
   date: string;
+  generated_at?: string;
+  prior_snapshot_date?: string;
+  current_snapshot_date?: string;
   task_mutations?: Array<{
     mutation: string;
     task_id?: string;
+    task_key?: string;
     title?: string;
+    summary?: string;
+    priority?: string;
+    task_kind?: string;
     reason?: string;
     source_refs?: string[];
   }>;
   decision_mutations?: Array<{
     mutation: string;
     decision_id?: string;
+    decision_key?: string;
     statement?: string;
     reason?: string;
     source_refs?: string[];
@@ -112,7 +128,9 @@ export type StateDelta = {
   knowledge_mutations?: Array<{
     mutation: string;
     knowledge_id?: string;
+    knowledge_key?: string;
     title?: string;
+    summary?: string;
     category?: string;
     reason?: string;
     source_refs?: string[];
@@ -124,6 +142,10 @@ export type StatefulDailyRollup = {
   headline: string;
   abstract: string;
   status_summary: string;
+  prior_snapshot_date?: string;
+  prior_context_bundle_date?: string;
+  source_dataset_ids?: string[];
+  source_spots?: DailySourceSpot[];
   main_threads?: DailyThread[];
   continuing_priorities?: string[];
   carried_over_tasks?: DailyTask[];

@@ -12,6 +12,7 @@ import {
   RefreshCcw,
   Sparkles,
 } from "lucide-react";
+import { StatefulViewLinks } from "@/components/stateful-view-links";
 import type { StatefulArtifactsBundle } from "@/lib/stateful-artifacts";
 import { cn } from "@/lib/cn";
 
@@ -83,13 +84,22 @@ function EmptyState() {
             `08/09/10/11/12` artifact を生成すると、この viewer で日次の stateful 分析を読めます。
           </p>
           <div className="mt-6">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-4 py-2 text-sm font-medium text-[var(--zt-foreground)]"
-            >
-              既存のライブ viewer に戻る
-              <ArrowRight className="size-4" />
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Link
+                href="/stateful/tasks"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-4 py-2 text-sm font-medium text-[var(--zt-foreground)]"
+              >
+                Task timeline
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-4 py-2 text-sm font-medium text-[var(--zt-foreground)]"
+              >
+                既存のライブ viewer に戻る
+                <ArrowRight className="size-4" />
+              </Link>
+            </div>
           </div>
         </section>
       </div>
@@ -153,6 +163,7 @@ export function StatefulDailyViewer({ bundle }: { bundle: StatefulArtifactsBundl
                   );
                 })}
               </div>
+              <StatefulViewLinks active="overview" date={bundle.selectedDate} />
               <div className="flex flex-wrap gap-2">
                 <Link
                   href="/"

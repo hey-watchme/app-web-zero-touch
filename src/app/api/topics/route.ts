@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     searchParams.get("include_children") ?? "true",
   );
 
-  const deviceId = searchParams.get("device_id");
+  const deviceId = searchParams.get("device_id") ?? process.env.ZEROTOUCH_DEVICE_ID ?? null;
   const status = searchParams.get("status");
 
   if (deviceId) {

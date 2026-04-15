@@ -16,6 +16,9 @@ Android 側で収集された Topic / Card を、Web でほぼリアルタイム
 - `すべて / 今日 / ライブ / 完了` フィルター
 - Next.js の route handler 経由で既存 ZeroTouch API を参照
 - `/stateful` で Amical の `daily rollup / context bundle / active state snapshot / state delta` を読む
+- `/stateful/timeline` で `Topic -> Event` とみなした日次タイムラインを見る
+- `/stateful/tasks` で active tasks と event timeline を読む
+- `/stateful/knowledge` で knowledge 面のテンプレートを見る
 
 ## 技術スタック
 
@@ -59,6 +62,12 @@ npm run dev
 
 `http://localhost:3000/stateful` を開くと、stateful artifact viewer が表示されます。
 
+`http://localhost:3000/stateful/timeline` を開くと、event timeline viewer が表示されます。
+
+`http://localhost:3000/stateful/tasks` を開くと、タスク中心 timeline viewer が表示されます。
+
+`http://localhost:3000/stateful/knowledge` を開くと、knowledge viewer テンプレートが表示されます。
+
 ## 主要ファイル
 
 - `src/app/page.tsx`
@@ -69,10 +78,24 @@ npm run dev
   - ZeroTouch backend の `GET /api/topics` プロキシ
 - `src/app/stateful/page.tsx`
   - stateful viewer のエントリ
+- `src/app/stateful/timeline/page.tsx`
+  - event timeline viewer のエントリ
+- `src/app/stateful/tasks/page.tsx`
+  - task timeline viewer のエントリ
+- `src/app/stateful/knowledge/page.tsx`
+  - knowledge viewer のエントリ
+- `src/components/stateful-event-timeline.tsx`
+  - Event を 24 時間の軸に置く基本画面
 - `src/components/stateful-daily-viewer.tsx`
   - daily / context / snapshot / delta を読む人間用 viewer
+- `src/components/stateful-task-timeline-viewer.tsx`
+  - active task と event timeline を読む人間用 viewer
+- `src/components/stateful-knowledge-viewer.tsx`
+  - knowledge 面のテンプレート viewer
 - `src/lib/stateful-artifacts.ts`
   - Android 側で生成した artifact の loader
+- `src/lib/stateful-events.ts`
+  - stateful artifact から event を組み立てる helper
 - `src/lib/cn.ts`
   - `clsx` + `tailwind-merge`
 
