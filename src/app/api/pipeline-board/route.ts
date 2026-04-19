@@ -24,7 +24,9 @@ type WikiRow = {
   id: string;
   title: string;
   body: string;
-  theme: string | null;
+  project_id: string | null;
+  category: string | null;
+  page_key: string | null;
   kind: string | null;
   status: string | null;
   version: number | null;
@@ -34,12 +36,58 @@ type WikiRow = {
   updated_at: string;
 };
 
+type ProjectRow = {
+  id: string;
+  project_key: string;
+  display_name: string;
+};
+
+type WikiPageRecord = WikiRow & {
+  project_key: string | null;
+  project_name: string | null;
+};
+
 function resolveDeviceId(request: NextRequest) {
   return (
     request.nextUrl.searchParams.get("device_id") ??
     process.env.ZEROTOUCH_DEVICE_ID ??
     FALLBACK_DEVICE_ID
   );
+}
+
+async function enrichWikiPagesWithProjects(
+  supabase: ReturnType<typeof createSupabaseServer>,
+  wikiRows: WikiRow[],
+) {
+  const projectIds = [...new Set(wikiRows.map((row) => row.project_id).filter(Boolean))] as string[];
+  const projectsById = new Map<string, ProjectRow>();
+
+  if (projectIds.length > 0) {
+    const { data: projectRows, error: projectError } = await supabase
+      .from("zerotouch_workspace_projects")
+      .select("id, project_key, display_name")
+      .in("id", projectIds);
+
+    if (projectError) {
+      return { error: projectError.message, pages: [] as WikiPageRecord[] };
+    }
+
+    ((projectRows ?? []) as ProjectRow[]).forEach((project) => {
+      projectsById.set(project.id, project);
+    });
+  }
+
+  const pages = wikiRows.map((row) => {
+    const project = row.project_id ? projectsById.get(row.project_id) : undefined;
+
+    return {
+      ...row,
+      project_key: project?.project_key ?? null,
+      project_name: project?.display_name ?? null,
+    };
+  });
+
+  return { error: null, pages };
 }
 
 export async function GET(request: NextRequest) {
@@ -103,12 +151,12 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  let wikiPages: WikiRow[] = [];
+  let wikiPages: WikiPageRecord[] = [];
   let wikiAvailable = true;
 
   const { data: wikiRows, error: wikiError } = await supabase
     .from("zerotouch_wiki_pages")
-    .select("id, title, body, theme, kind, status, version, source_fact_ids, last_ingest_at, created_at, updated_at")
+    .select("id, title, body, project_id, category, page_key, kind, status, version, source_fact_ids, last_ingest_at, created_at, updated_at")
     .eq("device_id", deviceId)
     .order("updated_at", { ascending: false });
 
@@ -122,7 +170,19 @@ export async function GET(request: NextRequest) {
       );
     }
   } else {
-    wikiPages = (wikiRows ?? []) as WikiRow[];
+    const {
+      error: projectError,
+      pages,
+    } = await enrichWikiPagesWithProjects(supabase, (wikiRows ?? []) as WikiRow[]);
+
+    if (projectError) {
+      return NextResponse.json(
+        { error: projectError },
+        { status: 500 },
+      );
+    }
+
+    wikiPages = pages;
   }
 
   return NextResponse.json({

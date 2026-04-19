@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock3,
   LoaderCircle,
+  MessageCircleQuestion,
   Radio,
   Search,
   Sparkles,
@@ -76,7 +77,11 @@ type WikiPageRecord = {
   id: string;
   title: string;
   body: string;
-  theme: string | null;
+  project_id: string | null;
+  project_key: string | null;
+  project_name: string | null;
+  category: string | null;
+  page_key: string | null;
   kind: string | null;
   status: string | null;
   version: number | null;
@@ -357,6 +362,13 @@ export function ZerotouchDashboard() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link
+                    href="/wiki"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-primary-soft)] bg-[var(--zt-primary-pale)] px-4 py-2 text-sm font-medium text-[var(--zt-primary)] hover:bg-[var(--zt-primary-soft)]"
+                  >
+                    Wiki Explorer
+                    <BookOpenText className="size-4" />
+                  </Link>
+                  <Link
                     href="/stateful"
                     className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-4 py-2 text-sm font-medium text-[var(--zt-foreground)] hover:bg-[var(--zt-surface-strong)]"
                   >
@@ -369,6 +381,13 @@ export function ZerotouchDashboard() {
                   >
                     Timeline
                     <Clock3 className="size-4 text-[var(--zt-primary)]" />
+                  </Link>
+                  <Link
+                    href="/query"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-4 py-2 text-sm font-medium text-[var(--zt-foreground)] hover:bg-[var(--zt-surface-strong)]"
+                  >
+                    Query
+                    <MessageCircleQuestion className="size-4 text-[var(--zt-primary)]" />
                   </Link>
                 </div>
               </div>
@@ -414,7 +433,7 @@ export function ZerotouchDashboard() {
                 <p className="text-sm text-[var(--zt-muted)]">
                   {activePhase === "facts"
                     ? "Topic から抽出された Fact を検索します。"
-                    : "最終的な wiki page の本文と分類を検索します。"}
+                    : "最終的な wiki page の本文と project/category/page_key を検索します。"}
                 </p>
               )}
             </div>
@@ -592,13 +611,19 @@ export function ZerotouchDashboard() {
                 </div>
 
                 <div className="mt-2 grid grid-cols-7 gap-2">
-                  {calendarDays.map((day) =>
-                    day.dateKey ? (
+                  {calendarDays.map((day) => {
+                    if (!day.dateKey) {
+                      return <div key={day.key} className="min-h-14 rounded-2xl" />;
+                    }
+
+                    const dateKey = day.dateKey;
+
+                    return (
                       <button
-                        key={day.dateKey}
+                        key={dateKey}
                         type="button"
                         disabled={day.isFuture}
-                        onClick={() => handleSelectDate(day.dateKey)}
+                        onClick={() => handleSelectDate(dateKey)}
                         className={cn(
                           "flex min-h-14 flex-col items-center justify-center rounded-2xl border px-2 py-2 text-sm font-medium",
                           day.isSelected
@@ -617,10 +642,8 @@ export function ZerotouchDashboard() {
                           )}
                         />
                       </button>
-                    ) : (
-                      <div key={day.key} className="min-h-14 rounded-2xl" />
-                    ),
-                  )}
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
@@ -857,16 +880,18 @@ function WikiCard({
             <span className="rounded-full bg-[var(--zt-primary-pale)] px-2.5 py-1 font-semibold text-[var(--zt-primary)]">
               wiki
             </span>
-            {page.kind ? (
-              <span className="rounded-full bg-[var(--zt-surface-strong)] px-2.5 py-1">
-                {page.kind}
-              </span>
-            ) : null}
-            {page.theme ? (
-              <span className="rounded-full bg-[var(--zt-surface-strong)] px-2.5 py-1">
-                {page.theme}
-              </span>
-            ) : null}
+            <span className="rounded-full bg-[var(--zt-surface-strong)] px-2.5 py-1">
+              {resolveWikiProjectLabel(page)}
+            </span>
+            <span className="rounded-full bg-[var(--zt-surface-strong)] px-2.5 py-1">
+              {resolveWikiCategoryLabel(page)}
+            </span>
+            <span className="rounded-full bg-[var(--zt-surface-strong)] px-2.5 py-1">
+              {page.kind?.trim() || "kind未設定"}
+            </span>
+            <span className="rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-2.5 py-1">
+              page_key {resolveWikiPageKeyLabel(page)}
+            </span>
             <span className="rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-2.5 py-1">
               related facts {relatedFactCount}
             </span>
@@ -1081,9 +1106,30 @@ function buildFactHaystack(fact: FactRecord) {
 }
 
 function buildWikiHaystack(page: WikiPageRecord) {
-  return [page.title, page.body, page.theme, page.kind, page.status]
+  return [
+    page.title,
+    page.body,
+    page.project_name,
+    page.project_key,
+    page.category,
+    page.page_key,
+    page.kind,
+    page.status,
+  ]
     .join(" ")
     .toLowerCase();
+}
+
+function resolveWikiProjectLabel(page: Pick<WikiPageRecord, "project_name" | "project_key">) {
+  return page.project_name?.trim() || page.project_key?.trim() || "未分類プロジェクト";
+}
+
+function resolveWikiCategoryLabel(page: Pick<WikiPageRecord, "category">) {
+  return page.category?.trim() || "未分類カテゴリ";
+}
+
+function resolveWikiPageKeyLabel(page: Pick<WikiPageRecord, "page_key">) {
+  return page.page_key?.trim() || "page_key未設定";
 }
 
 function resolveTopicReferenceTime(topic: Topic) {
