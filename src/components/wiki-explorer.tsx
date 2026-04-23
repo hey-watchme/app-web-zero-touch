@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import {
@@ -48,8 +49,11 @@ type FactRecord = {
 type WikiResponse = {
   deviceId: string;
   pages: WikiPage[];
-  facts: FactRecord[];
   wikiAvailable: boolean;
+};
+
+type WikiFactsResponse = {
+  facts: FactRecord[];
 };
 
 type KindKey = "all" | "decision" | "rule" | "insight" | "procedure" | "task" | "other";
@@ -67,7 +71,7 @@ const KIND_FILTERS: Array<{ key: KindKey; label: string }> = [
 const NO_PROJECT_KEY = "__no_project__";
 const NO_CATEGORY_KEY = "__no_category__";
 const EMPTY_PAGES: WikiPage[] = [];
-const EMPTY_FACTS: FactRecord[] = [];
+const EMPTY_FACT_IDS: string[] = [];
 
 async function jsonFetcher<T>(url: string): Promise<T> {
   const response = await fetch(url, { cache: "no-store" });
@@ -78,11 +82,14 @@ async function jsonFetcher<T>(url: string): Promise<T> {
 }
 
 export function WikiExplorer() {
+  const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [kindFilter, setKindFilter] = useState<KindKey>("all");
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+
+  const forceSplitLayout = searchParams.get("layout") === "split";
 
   const { data, error, isLoading } = useSWR<WikiResponse>(
     "/api/wiki",
@@ -95,14 +102,7 @@ export function WikiExplorer() {
   );
 
   const pages = data?.pages ?? EMPTY_PAGES;
-  const facts = data?.facts ?? EMPTY_FACTS;
   const wikiAvailable = data?.wikiAvailable ?? true;
-
-  const factMap = useMemo(() => {
-    const map = new Map<string, FactRecord>();
-    facts.forEach((fact) => map.set(fact.id, fact));
-    return map;
-  }, [facts]);
 
   const filteredPages = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -208,6 +208,41 @@ export function WikiExplorer() {
     [activeSelectedId, pages],
   );
 
+  const selectedFactIds = useMemo(() => {
+    if (!selectedPage) return EMPTY_FACT_IDS;
+    return (selectedPage.source_fact_ids ?? []).filter((id): id is string => Boolean(id));
+  }, [selectedPage]);
+
+  const selectedFactQueryUrl = (() => {
+    if (!selectedPage || selectedFactIds.length === 0) return null;
+    const params = new URLSearchParams();
+    if (data?.deviceId) {
+      params.set("device_id", data.deviceId);
+    }
+    selectedFactIds.forEach((id) => params.append("id", id));
+    return `/api/wiki-facts?${params.toString()}`;
+  })();
+
+  const {
+    data: selectedFactsData,
+    error: selectedFactsError,
+    isLoading: isSelectedFactsLoading,
+  } = useSWR<WikiFactsResponse>(
+    selectedFactQueryUrl,
+    jsonFetcher,
+    {
+      refreshInterval: 0,
+      revalidateOnFocus: false,
+      keepPreviousData: true,
+    },
+  );
+
+  const selectedFactMap = useMemo(() => {
+    const map = new Map<string, FactRecord>();
+    (selectedFactsData?.facts ?? []).forEach((fact) => map.set(fact.id, fact));
+    return map;
+  }, [selectedFactsData?.facts]);
+
   const relatedPages = useMemo(() => {
     if (!selectedPage) return [] as WikiPage[];
 
@@ -234,9 +269,9 @@ export function WikiExplorer() {
   const sourceFacts = useMemo(() => {
     if (!selectedPage) return [] as FactRecord[];
     return (selectedPage.source_fact_ids ?? [])
-      .map((id) => factMap.get(id))
+      .map((id) => selectedFactMap.get(id))
       .filter((value): value is FactRecord => Boolean(value));
-  }, [factMap, selectedPage]);
+  }, [selectedFactMap, selectedPage]);
 
   function toggleProject(projectKey: string) {
     setCollapsedProjects((previous) => {
@@ -309,8 +344,22 @@ export function WikiExplorer() {
           />
         </div>
       ) : (
-        <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-0 px-0 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="border-b border-[var(--zt-outline)] bg-[var(--zt-surface)] lg:sticky lg:top-0 lg:h-[calc(100dvh-57px)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <div
+          className={cn(
+            "mx-auto grid w-full max-w-[1400px] gap-0 px-0",
+            forceSplitLayout
+              ? "grid-cols-[280px_minmax(0,1fr)]"
+              : "grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)]",
+          )}
+        >
+          <aside
+            className={cn(
+              "border-b border-[var(--zt-outline)] bg-[var(--zt-surface)]",
+              forceSplitLayout
+                ? "sticky top-0 h-[calc(100dvh-57px)] overflow-y-auto border-b-0 border-r"
+                : "lg:sticky lg:top-0 lg:h-[calc(100dvh-57px)] lg:overflow-y-auto lg:border-b-0 lg:border-r",
+            )}
+          >
             <div className="flex flex-col gap-4 p-4">
               <div className="flex flex-wrap gap-1.5">
                 {KIND_FILTERS.map((filter) => {
@@ -422,12 +471,20 @@ export function WikiExplorer() {
             </div>
           </aside>
 
-          <section className="min-h-[calc(100dvh-57px)] px-4 py-6 sm:px-10 lg:px-12">
+          <section
+            className={cn(
+              "min-h-[calc(100dvh-57px)] px-4 py-6 sm:px-10",
+              forceSplitLayout ? "lg:px-10" : "lg:px-12",
+            )}
+          >
             {selectedPage ? (
               <PageViewer
                 page={selectedPage}
                 relatedPages={relatedPages}
                 sourceFacts={sourceFacts}
+                sourceFactCount={selectedFactIds.length}
+                isSourceFactsLoading={isSelectedFactsLoading}
+                hasSourceFactsError={Boolean(selectedFactsError)}
                 pageKeyToIdMap={pageKeyToIdMap}
                 onNavigate={(id) => setSelectedId(id)}
               />
@@ -453,12 +510,18 @@ function PageViewer({
   page,
   relatedPages,
   sourceFacts,
+  sourceFactCount,
+  isSourceFactsLoading,
+  hasSourceFactsError,
   pageKeyToIdMap,
   onNavigate,
 }: {
   page: WikiPage;
   relatedPages: WikiPage[];
   sourceFacts: FactRecord[];
+  sourceFactCount: number;
+  isSourceFactsLoading: boolean;
+  hasSourceFactsError: boolean;
   pageKeyToIdMap: Map<string, string>;
   onNavigate: (id: string) => void;
 }) {
@@ -536,39 +599,54 @@ function PageViewer({
         </section>
       ) : null}
 
-      {sourceFacts.length > 0 ? (
+      {sourceFactCount > 0 ? (
         <section className="mt-6 rounded-2xl border border-[var(--zt-outline)] bg-[var(--zt-surface)] px-5 py-4">
           <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--zt-muted)]">
             根拠となる Fact
           </h2>
-          <ul className="mt-3 divide-y divide-[var(--zt-outline)]">
-            {sourceFacts.map((fact) => (
-              <li key={fact.id} className="flex flex-col gap-1 py-3">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--zt-muted)]">
-                  <span className="rounded-full bg-[var(--zt-surface-strong)] px-2 py-0.5 font-semibold text-[var(--zt-muted-strong)]">
-                    Lv.{fact.importance_level ?? 0}
-                  </span>
-                  {fact.ttl_type ? (
-                    <span className="rounded-full bg-[var(--zt-surface-strong)] px-2 py-0.5 uppercase">
-                      {fact.ttl_type}
+          {hasSourceFactsError ? (
+            <p className="mt-3 text-sm text-rose-600">
+              Fact の取得に失敗しました。時間をおいて再読み込みしてください。
+            </p>
+          ) : isSourceFactsLoading ? (
+            <p className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--zt-muted)]">
+              <LoaderCircle className="size-4 animate-spin text-[var(--zt-primary)]" />
+              Fact を読み込み中...
+            </p>
+          ) : sourceFacts.length === 0 ? (
+            <p className="mt-3 text-sm text-[var(--zt-muted)]">
+              参照 Fact を取得できませんでした。
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-[var(--zt-outline)]">
+              {sourceFacts.map((fact) => (
+                <li key={fact.id} className="flex flex-col gap-1 py-3">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--zt-muted)]">
+                    <span className="rounded-full bg-[var(--zt-surface-strong)] px-2 py-0.5 font-semibold text-[var(--zt-muted-strong)]">
+                      Lv.{fact.importance_level ?? 0}
                     </span>
-                  ) : null}
-                  {(fact.categories ?? []).slice(0, 3).map((category) => (
-                    <span
-                      key={`${fact.id}-${category}`}
-                      className="rounded-full bg-[var(--zt-surface-strong)] px-2 py-0.5"
-                    >
-                      {category}
-                    </span>
-                  ))}
-                  <span className="ml-auto tabular-nums">{fact.id.slice(0, 8)}</span>
-                </div>
-                <p className="text-sm leading-6 text-[var(--zt-foreground)]">
-                  {fact.fact_text}
-                </p>
-              </li>
-            ))}
-          </ul>
+                    {fact.ttl_type ? (
+                      <span className="rounded-full bg-[var(--zt-surface-strong)] px-2 py-0.5 uppercase">
+                        {fact.ttl_type}
+                      </span>
+                    ) : null}
+                    {(fact.categories ?? []).slice(0, 3).map((category) => (
+                      <span
+                        key={`${fact.id}-${category}`}
+                        className="rounded-full bg-[var(--zt-surface-strong)] px-2 py-0.5"
+                      >
+                        {category}
+                      </span>
+                    ))}
+                    <span className="ml-auto tabular-nums">{fact.id.slice(0, 8)}</span>
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--zt-foreground)]">
+                    {fact.fact_text}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       ) : null}
 

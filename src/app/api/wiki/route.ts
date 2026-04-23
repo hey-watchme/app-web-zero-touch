@@ -30,16 +30,6 @@ type WikiPageRecord = WikiRow & {
   project_name: string | null;
 };
 
-type FactRow = {
-  id: string;
-  topic_id: string;
-  fact_text: string;
-  importance_level: number | null;
-  categories: string[] | null;
-  ttl_type: string | null;
-  created_at: string;
-};
-
 function resolveDeviceId(request: NextRequest) {
   return (
     request.nextUrl.searchParams.get("device_id") ??
@@ -97,7 +87,7 @@ export async function GET(request: NextRequest) {
 
   if (wikiError) {
     if (wikiError.code === "42P01") {
-      return NextResponse.json({ deviceId, pages: [], facts: [], wikiAvailable: false });
+      return NextResponse.json({ deviceId, pages: [], wikiAvailable: false });
     }
     return NextResponse.json({ error: wikiError.message }, { status: 500 });
   }
@@ -111,34 +101,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: projectError }, { status: 500 });
   }
 
-  const referencedFactIds = new Set<string>();
-  pages.forEach((page) => {
-    (page.source_fact_ids ?? []).forEach((id) => {
-      if (id) referencedFactIds.add(id);
-    });
-  });
-
-  let facts: FactRow[] = [];
-  if (referencedFactIds.size > 0) {
-    const idList = [...referencedFactIds];
-    const chunkSize = 200;
-    for (let index = 0; index < idList.length; index += chunkSize) {
-      const chunk = idList.slice(index, index + chunkSize);
-      const { data: factRows, error: factError } = await supabase
-        .from("zerotouch_facts")
-        .select("id, topic_id, fact_text, importance_level, categories, ttl_type, created_at")
-        .in("id", chunk);
-      if (factError) {
-        return NextResponse.json({ error: factError.message }, { status: 500 });
-      }
-      facts = facts.concat((factRows ?? []) as FactRow[]);
-    }
-  }
-
   return NextResponse.json({
     deviceId,
     pages,
-    facts,
     wikiAvailable: true,
   });
 }
