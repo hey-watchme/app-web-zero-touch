@@ -11,13 +11,12 @@ import {
 import useSWR from "swr";
 import {
   AlertTriangle,
-  ArrowLeft,
   BookOpenText,
   CheckCircle2,
+  CircleHelp,
   FileText,
   History,
   LoaderCircle,
-  MessageCircleQuestion,
   Send,
   Sparkles,
 } from "lucide-react";
@@ -211,66 +210,93 @@ export function WikiQuery() {
   }, []);
 
   return (
-    <main className="min-h-dvh bg-[var(--zt-background)] text-[var(--zt-foreground)]">
-      <header className="border-b border-[var(--zt-outline)] bg-[var(--zt-surface)]/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-3 py-1.5 text-sm font-medium text-[var(--zt-muted-strong)] hover:bg-[var(--zt-surface-strong)]"
-            >
-              <ArrowLeft className="size-4" />
-              Dashboard
-            </Link>
-            <div className="flex items-center gap-2">
-              <MessageCircleQuestion className="size-5 text-[var(--zt-primary)]" />
-              <h1 className="text-lg font-semibold text-[var(--zt-foreground)]">
-                ZeroTouch Wiki Query
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-3 py-1.5 text-xs text-[var(--zt-muted-strong)]">
-              <span className="font-medium">Provider</span>
-              <select
-                value={provider}
-                onChange={(event) => handleProviderChange(event.target.value)}
-                className="bg-transparent text-xs outline-none"
-              >
-                {PROVIDER_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="inline-flex items-center gap-2 rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-3 py-1.5 text-xs text-[var(--zt-muted-strong)]">
-              <span className="font-medium">Model</span>
-              <input
-                value={model}
-                onChange={(event) => setModel(event.target.value)}
-                className="w-40 bg-transparent text-xs outline-none"
-                placeholder="gpt-4.1-mini"
-              />
-            </label>
-            <div className="inline-flex items-center gap-2 text-xs text-[var(--zt-muted)]">
-              <LoaderCircle
-                className={cn(
-                  "size-3.5",
-                  isLogLoading
-                    ? "animate-spin text-[var(--zt-primary)]"
-                    : "text-[var(--zt-muted)]",
-                )}
-              />
-              {logError ? "同期エラー" : isLogLoading ? "同期中" : "10秒ごとに同期"}
-            </div>
-          </div>
+    <main className="min-h-dvh bg-[var(--zt-background)] text-[var(--zt-foreground)] flex flex-col">
+      {/* ── Compact header ───────────────────────────────────── */}
+      <header className="shrink-0 border-b border-[var(--zt-outline)] bg-[var(--zt-surface)]/80 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-[1400px] items-center gap-3 px-4 py-2 sm:px-6">
+          <h1 className="mr-auto text-sm font-semibold text-[var(--zt-foreground)]">
+            Query
+          </h1>
+          <select
+            value={provider}
+            onChange={(event) => handleProviderChange(event.target.value)}
+            className="rounded border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-2 py-1 text-xs text-[var(--zt-muted-strong)] outline-none"
+          >
+            {PROVIDER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <input
+            value={model}
+            onChange={(event) => setModel(event.target.value)}
+            className="w-36 rounded border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-2 py-1 text-xs text-[var(--zt-muted-strong)] outline-none"
+            placeholder="gpt-4.1-mini"
+          />
+          <span
+            className="inline-flex items-center"
+            title={logError ? "同期エラー" : isLogLoading ? "同期中" : "10秒ごとに同期"}
+          >
+            <LoaderCircle
+              className={cn(
+                "size-3.5 shrink-0",
+                isLogLoading ? "animate-spin text-[var(--zt-primary)]" : "text-[var(--zt-muted)]",
+              )}
+            />
+          </span>
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-0 px-0 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="border-b border-[var(--zt-outline)] bg-[var(--zt-surface)] lg:sticky lg:top-0 lg:h-[calc(100dvh-57px)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+      {/* ── Question form (full width) ────────────────────────── */}
+      <div className="shrink-0 border-b border-[var(--zt-outline)] bg-[var(--zt-surface)] px-4 py-3 sm:px-6">
+        <div className="mx-auto w-full max-w-[1400px]">
+          <div className="flex items-start gap-3">
+            <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-4 py-2.5 focus-within:border-[var(--zt-primary-soft)]">
+              <Sparkles className="mt-0.5 size-3.5 shrink-0 text-[var(--zt-primary)]" />
+              <textarea
+                id="query-input"
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                onKeyDown={handleTextareaKeyDown}
+                rows={2}
+                disabled={isSubmitting}
+                placeholder="Wikiに質問する（Cmd/Ctrl + Enter で送信）"
+                className="w-full resize-none bg-transparent text-sm leading-6 text-[var(--zt-foreground)] outline-none placeholder:text-[var(--zt-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => void submitQuery()}
+              disabled={isSubmitting || question.trim().length === 0}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors",
+                isSubmitting || question.trim().length === 0
+                  ? "cursor-not-allowed border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] text-[var(--zt-muted)]"
+                  : "border-[var(--zt-primary-soft)] bg-[var(--zt-primary-pale)] text-[var(--zt-primary)] hover:bg-[var(--zt-primary-soft)]",
+              )}
+            >
+              {isSubmitting ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
+              {isSubmitting ? "問い合わせ中" : "送信"}
+            </button>
+          </div>
+          {error ? (
+            <div className="mt-2 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* ── 2-column: History | Content ───────────────────────── */}
+      <div className="mx-auto grid min-h-0 w-full max-w-[1400px] flex-1 grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
+        {/* Left: History */}
+        <aside className="border-b border-[var(--zt-outline)] bg-[var(--zt-surface)] lg:h-full lg:overflow-y-auto lg:border-b-0 lg:border-r">
           <div className="flex flex-col gap-3 p-4">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--zt-muted)]">
               <History className="size-3.5" />
@@ -327,57 +353,9 @@ export function WikiQuery() {
           </div>
         </aside>
 
-        <section className="min-h-[calc(100dvh-57px)] px-4 py-6 sm:px-8 lg:px-10">
+        {/* Right: Content */}
+        <section className="overflow-y-auto px-4 py-6 sm:px-8 lg:px-10">
           <div className="mx-auto w-full max-w-3xl space-y-6">
-            <div className="rounded-[28px] border border-[var(--zt-outline)] bg-[var(--zt-surface)] p-5 shadow-sm">
-              <label
-                htmlFor="query-input"
-                className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--zt-muted)]"
-              >
-                <Sparkles className="size-3.5 text-[var(--zt-primary)]" />
-                Wiki に質問する
-              </label>
-              <textarea
-                id="query-input"
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
-                onKeyDown={handleTextareaKeyDown}
-                rows={4}
-                disabled={isSubmitting}
-                placeholder="例: WealthPark認証の現状は？"
-                className="mt-3 w-full resize-none rounded-2xl border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] px-4 py-3 text-sm leading-6 text-[var(--zt-foreground)] outline-none placeholder:text-[var(--zt-muted)] focus:border-[var(--zt-primary-soft)] disabled:cursor-not-allowed disabled:opacity-60"
-              />
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <span className="text-[11px] text-[var(--zt-muted)]">
-                  Cmd / Ctrl + Enter で送信
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void submitQuery()}
-                  disabled={isSubmitting || question.trim().length === 0}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                    isSubmitting || question.trim().length === 0
-                      ? "cursor-not-allowed border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] text-[var(--zt-muted)]"
-                      : "border-[var(--zt-primary-soft)] bg-[var(--zt-primary-pale)] text-[var(--zt-primary)] hover:bg-[var(--zt-primary-soft)]",
-                  )}
-                >
-                  {isSubmitting ? (
-                    <LoaderCircle className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
-                  )}
-                  {isSubmitting ? "問い合わせ中" : "送信"}
-                </button>
-              </div>
-              {error ? (
-                <div className="mt-3 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              ) : null}
-            </div>
-
             {currentAnswer ? (
               <AnswerCard view={currentAnswer} />
             ) : (
@@ -579,6 +557,7 @@ function OutcomeBadge({
   size?: "xs" | "sm";
 }) {
   const normalized = typeof outcome === "string" ? outcome.toLowerCase() : "";
+  const showGuide = size !== "xs";
   const { label, className } = (() => {
     if (normalized === "derivable") {
       return {
@@ -605,17 +584,112 @@ function OutcomeBadge({
     };
   })();
 
+  const guide = getOutcomeGuide(normalized);
+  const sizeClass = size === "xs" ? "px-1.5 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]";
+
+  if (!showGuide) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center rounded-full border font-semibold uppercase tracking-[0.04em]",
+          sizeClass,
+          className,
+        )}
+      >
+        {label}
+      </span>
+    );
+  }
+
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full border font-semibold uppercase tracking-[0.04em]",
-        size === "xs" ? "px-1.5 py-0.5 text-[10px]" : "px-2.5 py-1 text-[11px]",
-        className,
-      )}
-    >
-      {label}
+    <span className="inline-flex items-center gap-1">
+      <span
+        className={cn(
+          "inline-flex items-center rounded-full border font-semibold uppercase tracking-[0.04em]",
+          sizeClass,
+          className,
+        )}
+      >
+        {label}
+      </span>
+
+      <details className="group relative">
+        <summary
+          className="inline-flex size-5 cursor-pointer list-none items-center justify-center rounded-full border border-[var(--zt-outline)] bg-[var(--zt-surface-soft)] text-[var(--zt-muted)] hover:bg-[var(--zt-surface-strong)] [&::-webkit-details-marker]:hidden"
+          aria-label={`${label} の説明を表示`}
+        >
+          <CircleHelp className="size-3.5" />
+        </summary>
+        <div className="absolute left-0 z-30 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-[var(--zt-outline)] bg-[var(--zt-surface)] p-3 text-xs leading-5 text-[var(--zt-muted-strong)] shadow-lg">
+          <p className="font-semibold text-[var(--zt-foreground)]">{guide.title}</p>
+          <p className="mt-2">
+            <span className="font-semibold text-[var(--zt-foreground)]">意味: </span>
+            {guide.meaning}
+          </p>
+          <p className="mt-2">
+            <span className="font-semibold text-[var(--zt-foreground)]">解消方法: </span>
+            {guide.resolution}
+          </p>
+          {guide.futureHint ? (
+            <p className="mt-2">
+              <span className="font-semibold text-[var(--zt-foreground)]">今後の会話との関係: </span>
+              {guide.futureHint}
+            </p>
+          ) : null}
+        </div>
+      </details>
     </span>
   );
+}
+
+function getOutcomeGuide(normalizedOutcome: string): {
+  title: string;
+  meaning: string;
+  resolution: string;
+  futureHint: string;
+} {
+  if (normalizedOutcome === "derivable") {
+    return {
+      title: "derivable",
+      meaning:
+        "既存の Wiki ページだけで回答できた状態です。新規ページ作成や欠損フラグは発生しません。",
+      resolution:
+        "特別な解消作業は不要です。回答品質を上げたい場合は、関連ページを手動で更新してから再質問します。",
+      futureHint:
+        "今後の会話で新しい事実が増え、Ingest されると回答の精度や具体性がさらに上がります。",
+    };
+  }
+
+  if (normalizedOutcome === "synthesis") {
+    return {
+      title: "synthesis",
+      meaning:
+        "複数ページを統合して新しい知見が必要と判定された状態です。query_answer ページを新規作成します。",
+      resolution:
+        "作成された query_answer を確認し、必要なら canonical ページへ反映して再 Ingest します。",
+      futureHint:
+        "今後の会話で関連事実が増えると、同テーマの synthesis がより安定して再利用されます。",
+    };
+  }
+
+  if (normalizedOutcome === "gap_or_conflict") {
+    return {
+      title: "gap / conflict",
+      meaning:
+        "既存 Wiki に情報不足または矛盾があり、回答を確定できなかった状態です。ログには残りますが自動修復はしません。",
+      resolution:
+        "追加情報を会話や入力で集め、Fact 化された後に Ingest を再実行して同じ質問を再テストします。",
+      futureHint:
+        "今後の会話の中で答えに必要な情報が出てきて取り込まれれば、このステータスは解消され得ます。",
+    };
+  }
+
+  return {
+    title: normalizedOutcome || "unknown",
+    meaning: "このステータスの定義は未登録です。",
+    resolution: "ログ内容を確認し、必要なら Ingest と再質問で挙動を確認してください。",
+    futureHint: "新しい会話データが取り込まれると結果が変わる場合があります。",
+  };
 }
 
 function ConfidenceBadge({ confidence }: { confidence: Confidence }) {
